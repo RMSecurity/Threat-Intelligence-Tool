@@ -8,23 +8,6 @@ Built by [Rodrigo Moses](https://www.linkedin.com/in/rodrigo-m-793b36152/) · Py
 
 ---
 
-## Screenshots
-
-> *(Add your screenshots here — see instructions below)*
-
-| Main interface | Excel report |
-|---|---|
-| ![Main UI](Screenshots/main.png) | ![Excel](Screenshots/excel.png) |
-
-| Loading state | IoC detail panel |
-|---|---|
-| ![Loading](Screenshots/loading.png) | ![IoC](Screenshots/ioc_panel.png) |
-
-> **How to add screenshots:**
-> 1. Run the program and take screenshots with `Win + Shift + S`
-> 2. Save them in a `Screenshots/` folder inside the project
-> 3. Push with `git add Screenshots/ && git commit -m "Add screenshots" && git push`
-
 ---
 
 <a name="english"></a>
@@ -45,6 +28,18 @@ RMSecurity monitors **47 RSS feeds** from leading cybersecurity sources (Krebs o
 - **Optional Ollama integration** — connect a local LLM (llama3.2:3b) for semantic enrichment
 - **Language toggle** — switch between English and Spanish with one click (🌐 EN/ES button)
 - **Dark cyberpunk UI** — neon-on-dark theme built with tkinter
+
+### Screenshots
+
+![Dashboard](Screenshots/PANTALLA_CIBERSEG2.png)
+
+| LinkedIn preview | Threat dashboard |
+|---|---|
+| ![Preview](Screenshots/CAPTURAL_INKD.png) | ![Dash](Screenshots/DASH.png) |
+
+| Excel report — severity colors | Excel report — IoC detail |
+|---|---|
+| ![Excel1](Screenshots/EXCEL1.png) | ![Excel2](Screenshots/EXCEL2.png) |
 
 ### Feed categories
 
