@@ -1,6 +1,6 @@
 {
   "BleepingComputer": {
-    "total": 45,
+    "total": 60,
     "util": 0
   },
   "Recorded Future": {
@@ -12,7 +12,7 @@
     "util": 0
   },
   "CyberScoop": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "CISA Alerts": {
@@ -20,7 +20,7 @@
     "util": 0
   },
   "Krebs on Security": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "US-CERT": {
@@ -28,7 +28,7 @@
     "util": 0
   },
   "Schneier on Security": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "Troy Hunt": {
@@ -36,11 +36,11 @@
     "util": 0
   },
   "Help Net Security": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "Graham Cluley": {
-    "total": 60,
+    "total": 80,
     "util": 0
   },
   "NIST NVD": {
@@ -48,11 +48,11 @@
     "util": 0
   },
   "The Hacker News": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "Dark Reading": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "Talos Intelligence": {
@@ -64,11 +64,11 @@
     "util": 0
   },
   "CrowdStrike Blog": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "SentinelOne Blog": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "ENISA": {
@@ -80,11 +80,11 @@
     "util": 0
   },
   "Infosecurity Magazine": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "Exploit-DB": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "Rapid7 Blog": {
@@ -96,11 +96,11 @@
     "util": 0
   },
   "SecurityWeek": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "Microsoft Security": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "Vulhub": {
@@ -108,7 +108,7 @@
     "util": 0
   },
   "Palo Alto Unit42": {
-    "total": 45,
+    "total": 60,
     "util": 0
   },
   "Naked Security Sophos": {
@@ -120,15 +120,15 @@
     "util": 0
   },
   "INCIBE España": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "GNews Ransomware AR": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "GNews Hackeo AR": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "Google TAG": {
@@ -136,15 +136,15 @@
     "util": 0
   },
   "Kaspersky Securelist": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "GNews Ciberataque AR": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "GNews APT ES": {
-    "total": 60,
+    "total": 75,
     "util": 0
   },
   "GNews Brecha datos AR": {
@@ -152,7 +152,7 @@
     "util": 0
   },
   "Hackplayers España": {
-    "total": 75,
+    "total": 100,
     "util": 0
   },
   "Flu-Project España": {
@@ -164,15 +164,15 @@
     "util": 0
   },
   "GNews Data breach EN": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "GNews APT nation-state": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "GNews Zero-day EN": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "NCC Group Research": {
@@ -192,7 +192,7 @@
     "util": 0
   },
   "GNews Ransomware EN": {
-    "total": 100,
+    "total": 135,
     "util": 0
   },
   "Mandiant Blog": {
@@ -200,11 +200,11 @@
     "util": 0
   },
   "DragonJAR Colombia": {
-    "total": 36,
+    "total": 48,
     "util": 0
   },
   "Google Project Zero": {
-    "total": 30,
+    "total": 40,
     "util": 0
   },
   "CiberInteligencia MX": {
@@ -212,11 +212,11 @@
     "util": 0
   },
   "Recorded Future / TheRecord": {
-    "total": 10,
+    "total": 15,
     "util": 0
   },
   "ESET WeLiveSecurity": {
-    "total": 70,
+    "total": 105,
     "util": 0
   },
   "Segu.info": {
@@ -224,19 +224,19 @@
     "util": 0
   },
   "GNews Critical infra": {
-    "total": 70,
+    "total": 105,
     "util": 0
   },
   "GNews CISA advisory": {
-    "total": 70,
+    "total": 105,
     "util": 0
   },
   "GNews Darkweb arrest": {
-    "total": 70,
+    "total": 105,
     "util": 0
   },
   "GNews Vuln ES": {
-    "total": 70,
+    "total": 105,
     "util": 0
   }
 }

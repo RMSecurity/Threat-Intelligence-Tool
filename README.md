@@ -33,9 +33,7 @@ RMSecurity monitors **47 RSS feeds** from leading cybersecurity sources (Krebs o
 
 ![Dashboard](Screenshots/PANTALLA_CIBERSEG2.png)
 
-| LinkedIn preview | Threat dashboard |
-|---|---|
-| ![Preview](Screenshots/CAPTURAL_INKD.png) | ![Dash](Screenshots/DASH.png) |
+![Dashboard](Screenshots/DASH.png)
 
 | Excel report — severity colors | Excel report — IoC detail |
 |---|---|

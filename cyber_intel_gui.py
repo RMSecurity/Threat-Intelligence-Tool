@@ -23,6 +23,133 @@ def _resource(rel):
     return os.path.join(base, rel)
 
 # ─────────────────────────────────────────────────────────────
+# SISTEMA DE TRADUCCIÓN (ES / EN)
+# ─────────────────────────────────────────────────────────────
+TRANSLATIONS = {
+    "ES": {
+        "title_top":       "◈ THREAT INTELLIGENCE · CIBERSEGURIDAD",
+        "btn_search":      "◉ BUSCAR NOTICIAS",
+        "btn_mark":        "✔ Marcar sel.",
+        "btn_save_ioc":    "⬡ Guardar IoC",
+        "btn_clear":       "↺ Limpiar",
+        "btn_excel":       "▤ IoC Excel",
+        "btn_feeds":       "▦ Feeds",
+        "btn_open_link":   "↗ Abrir en navegador",
+        "lbl_category":    "Categoría:",
+        "lbl_severity":    "Severidad:",
+        "lbl_search":      "Buscar:",
+        "all":             "TODAS",
+        "col_date":        "Fecha ↓",
+        "col_check":       "✔",
+        "col_sev":         "Severidad",
+        "col_cat":         "Categoría",
+        "col_mitre":       "MITRE ATT&CK",
+        "col_title":       "Título",
+        "col_actor":       "Actor / Grupo",
+        "col_source":      "Fuente",
+        "panel_analysis":  "▸ ANÁLISIS DE AMENAZA",
+        "panel_ioc":       "IoC / INDICADORES",
+        "panel_summary":   "RESUMEN",
+        "loading_title":   "⟳  BUSCANDO AMENAZAS",
+        "loading_feeds":   "Consultando feeds de ciberseguridad...",
+        "status_ready":    "Sistema listo.  Presiona  ◉ BUSCAR  para comenzar.",
+        "status_loading":  "Buscando...",
+        "ioc_actor":       "Actor/Grupo",
+        "ioc_origin":      "Origen",
+        "ioc_victim":      "Víctima",
+        "ioc_sector":      "Sector",
+        "ioc_country_v":   "País víctima",
+        "ioc_impact":      "Impacto",
+        "ioc_data":        "Datos robados",
+        "ioc_systems":     "Sistemas afect.",
+        "ioc_ransom":      "Rescate/Monto",
+        "ioc_software":    "Software",
+        "ioc_versions":    "Versiones",
+        "ioc_techniques":  "Técnicas T1",
+        "ioc_ips":         "IPs C2/Mal.",
+        "ioc_ports":       "Puertos",
+        "ioc_domains":     "Dominios mal.",
+        "ioc_hashes":      "Hashes",
+        "ioc_wallets":     "Wallets crypto",
+        "ioc_emails":      "Emails",
+        "lang_btn":        "🌐 EN",
+        "threats_found":   "amenazas detectadas",
+        "search_done":     "Búsqueda completada",
+        "no_results":      "Sin resultados para",
+        "saving_ioc":      "⟳ Guardando IoC de",
+        "saving_ioc2":     "noticias...",
+        "saved_ioc":       "✔ IoC guardados:",
+        "saved_new":       "nuevos registros →",
+        "cleared":         "Limpiado.",
+        "no_marked":       "No hay noticias marcadas.",
+        "sev_values":      ["TODAS", "CRÍTICO", "ALTO", "MEDIO", "BAJO"],
+    },
+    "EN": {
+        "title_top":       "◈ THREAT INTELLIGENCE · CYBERSECURITY",
+        "btn_search":      "◉ SEARCH NEWS",
+        "btn_mark":        "✔ Mark sel.",
+        "btn_save_ioc":    "⬡ Save IoC",
+        "btn_clear":       "↺ Clear",
+        "btn_excel":       "▤ IoC Excel",
+        "btn_feeds":       "▦ Feeds",
+        "btn_open_link":   "↗ Open in browser",
+        "lbl_category":    "Category:",
+        "lbl_severity":    "Severity:",
+        "lbl_search":      "Search:",
+        "all":             "ALL",
+        "col_date":        "Date ↓",
+        "col_check":       "✔",
+        "col_sev":         "Severity",
+        "col_cat":         "Category",
+        "col_mitre":       "MITRE ATT&CK",
+        "col_title":       "Title",
+        "col_actor":       "Actor / Group",
+        "col_source":      "Source",
+        "panel_analysis":  "▸ THREAT ANALYSIS",
+        "panel_ioc":       "IoC / INDICATORS",
+        "panel_summary":   "SUMMARY",
+        "loading_title":   "⟳  SEARCHING THREATS",
+        "loading_feeds":   "Querying cybersecurity feeds...",
+        "status_ready":    "System ready.  Press  ◉ SEARCH  to begin.",
+        "status_loading":  "Searching...",
+        "ioc_actor":       "Actor/Group",
+        "ioc_origin":      "Origin",
+        "ioc_victim":      "Victim",
+        "ioc_sector":      "Sector",
+        "ioc_country_v":   "Victim country",
+        "ioc_impact":      "Impact",
+        "ioc_data":        "Stolen data",
+        "ioc_systems":     "Aff. systems",
+        "ioc_ransom":      "Ransom/Amount",
+        "ioc_software":    "Software",
+        "ioc_versions":    "Versions",
+        "ioc_techniques":  "T1 Techniques",
+        "ioc_ips":         "C2/Mal. IPs",
+        "ioc_ports":       "Ports",
+        "ioc_domains":     "Mal. domains",
+        "ioc_hashes":      "Hashes",
+        "ioc_wallets":     "Crypto wallets",
+        "ioc_emails":      "Emails",
+        "lang_btn":        "🌐 ES",
+        "threats_found":   "threats detected",
+        "search_done":     "Search completed",
+        "no_results":      "No results for",
+        "saving_ioc":      "⟳ Saving IoC from",
+        "saving_ioc2":     "articles...",
+        "saved_ioc":       "✔ IoC saved:",
+        "saved_new":       "new records →",
+        "cleared":         "Cleared.",
+        "no_marked":       "No marked articles.",
+        "sev_values":      ["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"],
+    },
+}
+
+_LANG = "ES"
+
+def T(key):
+    return TRANSLATIONS[_LANG].get(key, key)
+
+# ─────────────────────────────────────────────────────────────
 # PALETA NEON FUTURISTA
 # ─────────────────────────────────────────────────────────────
 C = {
@@ -1272,9 +1399,10 @@ class CyberIntelApp(tk.Tk):
         # TOPBAR
         top = tk.Frame(self, bg="#010408", pady=7)
         top.pack(fill="x")
-        tk.Label(top, text="◈ THREAT INTELLIGENCE · CIBERSEGURIDAD",
+        self._lbl_title_top = tk.Label(top, text=T("title_top"),
                  bg="#010408", fg=C["cyan"],
-                 font=("Consolas", 14, "bold")).pack(side="left", padx=14)
+                 font=("Consolas", 14, "bold"))
+        self._lbl_title_top.pack(side="left", padx=14)
 
         right_top = tk.Frame(top, bg="#010408")
         right_top.pack(side="right", padx=8)
@@ -1282,8 +1410,15 @@ class CyberIntelApp(tk.Tk):
                                    bg="#010408", fg=C["amber"],
                                    font=("Consolas", 9))
         self.lbl_ollama.pack(side="right", padx=10)
-        self._btn(right_top, "▤ IoC Excel", C["blue"],  self._abrir_ioc,  lado="right")
-        self._btn(right_top, "▦ Feeds",     C["border"], self._ver_feeds, lado="right", fg=C["txt"])
+        self._btn_excel_top = self._btn(right_top, T("btn_excel"), C["blue"],  self._abrir_ioc,  lado="right")
+        self._btn_feeds_top = self._btn(right_top, T("btn_feeds"), C["border"], self._ver_feeds, lado="right", fg=C["txt"])
+        self._btn_lang = tk.Button(right_top, text=T("lang_btn"),
+                                   bg=C["bg2"], fg=C["txt_hi"],
+                                   font=("Consolas", 9, "bold"),
+                                   relief="flat", padx=8, pady=3,
+                                   activebackground=C["bg3"], activeforeground=C["cyan"],
+                                   command=self._toggle_lang)
+        self._btn_lang.pack(side="right", padx=4)
 
         # SEPARADOR NEON
         sep = tk.Frame(self, bg=C["cyan"], height=1)
@@ -1293,23 +1428,23 @@ class CyberIntelApp(tk.Tk):
         filtros = tk.Frame(self, bg=C["bg1"], pady=5)
         filtros.pack(fill="x", padx=6, pady=(2, 0))
 
-        self._lbl("Categoría:", filtros, lado="left")
-        self._cat_filter = tk.StringVar(value="TODAS")
-        combo = ttk.Combobox(filtros, textvariable=self._cat_filter,
-                              values=["TODAS"] + CATEGORIAS_ORDEN,
+        self._lbl_cat_filter = self._lbl_ret("Categoría:", filtros, lado="left")
+        self._cat_filter = tk.StringVar(value=T("all"))
+        self._combo_cat = ttk.Combobox(filtros, textvariable=self._cat_filter,
+                              values=[T("all")] + CATEGORIAS_ORDEN,
                               state="readonly", width=26, font=("Consolas", 9))
-        combo.pack(side="left", padx=4)
-        combo.bind("<<ComboboxSelected>>", lambda e: self._aplicar_filtro())
+        self._combo_cat.pack(side="left", padx=4)
+        self._combo_cat.bind("<<ComboboxSelected>>", lambda e: self._aplicar_filtro())
 
-        self._lbl("Severidad:", filtros, lado="left", pad=(10, 4))
-        self._sev_filter = tk.StringVar(value="TODAS")
-        sev_combo = ttk.Combobox(filtros, textvariable=self._sev_filter,
-                                  values=["TODAS", "CRÍTICO", "ALTO", "MEDIO", "BAJO"],
+        self._lbl_sev_filter = self._lbl_ret("Severidad:", filtros, lado="left", pad=(10, 4))
+        self._sev_filter = tk.StringVar(value=T("all"))
+        self._combo_sev = ttk.Combobox(filtros, textvariable=self._sev_filter,
+                                  values=T("sev_values"),
                                   state="readonly", width=9, font=("Consolas", 9))
-        sev_combo.pack(side="left", padx=4)
-        sev_combo.bind("<<ComboboxSelected>>", lambda e: self._aplicar_filtro())
+        self._combo_sev.pack(side="left", padx=4)
+        self._combo_sev.bind("<<ComboboxSelected>>", lambda e: self._aplicar_filtro())
 
-        self._lbl("Buscar:", filtros, lado="left", pad=(10, 4))
+        self._lbl_buscar = self._lbl_ret("Buscar:", filtros, lado="left", pad=(10, 4))
         self._txt_search = tk.Entry(filtros, bg=C["bg2"], fg=C["txt_hi"],
                                     insertbackground=C["cyan"],
                                     font=("Consolas", 10), width=24,
@@ -1333,10 +1468,10 @@ class CyberIntelApp(tk.Tk):
         acc = tk.Frame(self, bg=C["bg0"], pady=4)
         acc.pack(fill="x", padx=6)
 
-        self._btn(acc, "◉ BUSCAR NOTICIAS",  C["cyan"],   self._iniciar_busqueda, bold=True, fg=C["bg0"])
-        self._btn(acc, "✔ Marcar sel.",       "#003820",   self._marcar_seleccion, fg=C["green"])
-        self._btn(acc, "⬡ Guardar IoC",      "#1A003A",   self._guardar_ioc,      fg=C["violet"], bold=True)
-        self._btn(acc, "↺ Limpiar",           C["bg1"],    self._limpiar,          fg=C["txt"])
+        self._btn_buscar  = self._btn(acc, T("btn_search"),   C["cyan"],   self._iniciar_busqueda, bold=True, fg=C["bg0"])
+        self._btn_marcar  = self._btn(acc, T("btn_mark"),     "#003820",   self._marcar_seleccion, fg=C["green"])
+        self._btn_guardar = self._btn(acc, T("btn_save_ioc"), "#1A003A",   self._guardar_ioc,      fg=C["violet"], bold=True)
+        self._btn_limpiar = self._btn(acc, T("btn_clear"),    C["bg1"],    self._limpiar,          fg=C["txt"])
 
         # PANEL PRINCIPAL
         main = tk.PanedWindow(self, orient="horizontal", bg=C["bg0"],
@@ -1355,15 +1490,16 @@ class CyberIntelApp(tk.Tk):
                                   selectmode="extended")
 
         hdrs = {
-            "fecha":  ("Fecha ↓",    95,  False),
-            "sel":    ("✔",          28,  False),
-            "sev":    ("Severidad",  78,  False),
-            "cat":    ("Categoría",  155, False),
-            "mitre":  ("MITRE ATT&CK", 165, False),
-            "titulo": ("Título",     330, True),
-            "actor":  ("Actor / Grupo", 125, False),
-            "fuente": ("Fuente",     110, False),
+            "fecha":  (T("col_date"),   95,  False),
+            "sel":    (T("col_check"),  28,  False),
+            "sev":    (T("col_sev"),    78,  False),
+            "cat":    (T("col_cat"),    155, False),
+            "mitre":  (T("col_mitre"), 165, False),
+            "titulo": (T("col_title"), 330, True),
+            "actor":  (T("col_actor"), 125, False),
+            "fuente": (T("col_source"),110, False),
         }
+        self._tree_hdrs = hdrs
         for col, (txt, w, stretch) in hdrs.items():
             self.tree.heading(col, text=txt,
                               command=lambda c=col: self._ordenar(c))
@@ -1400,8 +1536,9 @@ class CyberIntelApp(tk.Tk):
 
         # Header detalle
         tk.Frame(der, bg=C["cyan"], height=1).pack(fill="x")
-        tk.Label(der, text="▸ ANÁLISIS DE AMENAZA", bg=C["bg1"], fg=C["cyan"],
-                 font=("Consolas", 9, "bold"), anchor="w").pack(fill="x", padx=8, pady=(6, 2))
+        self._lbl_analysis_hdr = tk.Label(der, text=T("panel_analysis"), bg=C["bg1"], fg=C["cyan"],
+                 font=("Consolas", 9, "bold"), anchor="w")
+        self._lbl_analysis_hdr.pack(fill="x", padx=8, pady=(6, 2))
 
         # Badges sev + cat
         self._lbl_sev = tk.Label(der, text="", bg=C["bg1"], fg="white",
@@ -1428,34 +1565,35 @@ class CyberIntelApp(tk.Tk):
         ioc_frame = tk.Frame(der, bg="#001008", highlightbackground=C["green"],
                               highlightthickness=1)
         ioc_frame.pack(fill="x", padx=8, pady=(0, 4))
-        tk.Label(ioc_frame, text="IoC / INDICADORES", bg="#001008", fg=C["green"],
-                 font=("Consolas", 7, "bold")).pack(anchor="w", padx=6, pady=(3, 0))
+        self._lbl_ioc_hdr = tk.Label(ioc_frame, text=T("panel_ioc"), bg="#001008", fg=C["green"],
+                 font=("Consolas", 7, "bold"))
+        self._lbl_ioc_hdr.pack(anchor="w", padx=6, pady=(3, 0))
 
         self._ioc_labels = {}
-        ioc_fields = [
-            # ── Contexto del incidente ──
-            ("actor",    "Actor/Grupo",   C["red"]),
-            ("pais_o",   "Origen",        C["red"]),
-            ("victima",  "Víctima",       C["amber"]),
-            ("sector",   "Sector",        C["amber"]),
-            ("pais_v",   "País víctima",  C["txt_hi"]),
-            ("impacto",  "Impacto",       C["orange"]),
-            ("datos",    "Datos robados", C["orange"]),
-            ("sistemas", "Sistemas afect.", C["orange"]),
-            ("rescate",  "Rescate/Monto", C["red"]),
-            # ── Indicadores técnicos ──
-            ("cve",      "CVE",           C["orange"]),
-            ("cvss",     "CVSS",          C["red"]),
-            ("software", "Software",      C["cyan"]),
-            ("versiones","Versiones",     C["cyan"]),
-            ("tecnicas", "Técnicas T1",   C["violet"]),
-            ("ips",      "IPs C2/Mal.",   C["cyan"]),
-            ("puertos",  "Puertos",       C["txt_hi"]),
-            ("dominios", "Dominios mal.", C["orange"]),
-            ("hashes",   "Hashes",        "#888888"),
-            ("wallets",  "Wallets crypto",C["amber"]),
-            ("emails",   "Emails",        C["txt"]),
+        self._ioc_field_keys = [
+            ("actor",    "ioc_actor",    C["red"]),
+            ("pais_o",   "ioc_origin",   C["red"]),
+            ("victima",  "ioc_victim",   C["amber"]),
+            ("sector",   "ioc_sector",   C["amber"]),
+            ("pais_v",   "ioc_country_v",C["txt_hi"]),
+            ("impacto",  "ioc_impact",   C["orange"]),
+            ("datos",    "ioc_data",     C["orange"]),
+            ("sistemas", "ioc_systems",  C["orange"]),
+            ("rescate",  "ioc_ransom",   C["red"]),
+            ("cve",      "CVE",          C["orange"]),
+            ("cvss",     "CVSS",         C["red"]),
+            ("software", "ioc_software", C["cyan"]),
+            ("versiones","ioc_versions", C["cyan"]),
+            ("tecnicas", "ioc_techniques",C["violet"]),
+            ("ips",      "ioc_ips",      C["cyan"]),
+            ("puertos",  "ioc_ports",    C["txt_hi"]),
+            ("dominios", "ioc_domains",  C["orange"]),
+            ("hashes",   "ioc_hashes",   "#888888"),
+            ("wallets",  "ioc_wallets",  C["amber"]),
+            ("emails",   "ioc_emails",   C["txt"]),
         ]
+        ioc_fields = [(k, T(tkey) if tkey.startswith("ioc_") else tkey, col)
+                      for k, tkey, col in self._ioc_field_keys]
         # Contenedor scrollable para el bloque IoC
         ioc_inner = tk.Frame(ioc_frame, bg="#001008")
         ioc_inner.pack(fill="x", padx=0)
@@ -1472,8 +1610,9 @@ class CyberIntelApp(tk.Tk):
 
         # Resumen
         tk.Frame(der, bg=C["border"], height=1).pack(fill="x", padx=8, pady=(4, 0))
-        tk.Label(der, text="RESUMEN", bg=C["bg1"], fg=C["txt"],
-                 font=("Consolas", 7, "bold"), anchor="w").pack(fill="x", padx=8, pady=(3, 0))
+        self._lbl_summary_hdr = tk.Label(der, text=T("panel_summary"), bg=C["bg1"], fg=C["txt"],
+                 font=("Consolas", 7, "bold"), anchor="w")
+        self._lbl_summary_hdr.pack(fill="x", padx=8, pady=(3, 0))
         self._txt_detail = scrolledtext.ScrolledText(
             der, bg="#050D18", fg=C["txt_hi"],
             font=("Consolas", 9), wrap="word",
@@ -1482,7 +1621,7 @@ class CyberIntelApp(tk.Tk):
             highlightthickness=0)
         self._txt_detail.pack(fill="both", expand=True, padx=8, pady=(2, 4))
 
-        tk.Button(der, text="↗ Abrir en navegador",
+        self._btn_open_link = tk.Button(der, text=T("btn_open_link"),
                   bg=C["bg2"], fg=C["cyan"], font=("Consolas", 9),
                   relief="flat", padx=8, pady=3,
                   activebackground=C["bg3"], activeforeground=C["cyan"],
@@ -1501,14 +1640,14 @@ class CyberIntelApp(tk.Tk):
         # Texto de estado dentro del panel de carga — grande y neon
         self._lbl_carga_titulo = tk.Label(
             self._frame_carga,
-            text="⟳  BUSCANDO AMENAZAS...",
+            text=T("loading_title") + "...",
             bg="#020810", fg=C["cyan"],
             font=("Consolas", 13, "bold"))
         self._lbl_carga_titulo.pack()
 
         self.lbl_status = tk.Label(
             self._frame_carga,
-            text="Consultando feeds de ciberseguridad...",
+            text=T("loading_feeds"),
             bg="#020810", fg=C["amber"],
             font=("Consolas", 10), anchor="center")
         self.lbl_status.pack(pady=(4, 0))
@@ -1528,7 +1667,7 @@ class CyberIntelApp(tk.Tk):
 
         self._lbl_status_footer = tk.Label(
             status_bar,
-            text="Sistema listo.  Presiona  ◉ BUSCAR  para comenzar.",
+            text=T("status_ready"),
             bg="#010408", fg=C["txt"],
             font=("Consolas", 9), anchor="w")
         self._lbl_status_footer.pack(side="left", padx=10)
@@ -1555,6 +1694,63 @@ class CyberIntelApp(tk.Tk):
     def _lbl(self, text, parent, lado="left", pad=(6, 4)):
         tk.Label(parent, text=text, bg=C["bg1"], fg=C["txt"],
                  font=("Consolas", 9)).pack(side=lado, padx=pad)
+
+    def _lbl_ret(self, text, parent, lado="left", pad=(6, 4)):
+        w = tk.Label(parent, text=text, bg=C["bg1"], fg=C["txt"],
+                     font=("Consolas", 9))
+        w.pack(side=lado, padx=pad)
+        return w
+
+    def _toggle_lang(self):
+        global _LANG
+        _LANG = "EN" if _LANG == "ES" else "ES"
+        self._aplicar_idioma()
+
+    def _aplicar_idioma(self):
+        self._lbl_title_top.config(text=T("title_top"))
+        self.title(T("title_top").replace("◈ ", "RMSecurity · "))
+        self._btn_lang.config(text=T("lang_btn"))
+        self._btn_buscar.config(text=T("btn_search"))
+        self._btn_marcar.config(text=T("btn_mark"))
+        self._btn_guardar.config(text=T("btn_save_ioc"))
+        self._btn_limpiar.config(text=T("btn_clear"))
+        self._btn_excel_top.config(text=T("btn_excel"))
+        self._btn_feeds_top.config(text=T("btn_feeds"))
+        self._btn_open_link.config(text=T("btn_open_link"))
+        self._lbl_cat_filter.config(text=T("lbl_category"))
+        self._lbl_sev_filter.config(text=T("lbl_severity"))
+        self._lbl_buscar.config(text=T("lbl_search"))
+        self._lbl_analysis_hdr.config(text=T("panel_analysis"))
+        self._lbl_ioc_hdr.config(text=T("panel_ioc"))
+        self._lbl_summary_hdr.config(text=T("panel_summary"))
+        self._lbl_status_footer.config(text=T("status_ready"))
+        self._lbl_carga_titulo.config(text=T("loading_title") + "...")
+        self.lbl_status.config(text=T("loading_feeds"))
+        # Columnas del treeview
+        col_map = {
+            "fecha": "col_date", "sel": "col_check", "sev": "col_sev",
+            "cat": "col_cat", "mitre": "col_mitre", "titulo": "col_title",
+            "actor": "col_actor", "fuente": "col_source",
+        }
+        for col, tkey in col_map.items():
+            self.tree.heading(col, text=T(tkey))
+        # Combo filtros
+        cur_cat = self._cat_filter.get()
+        cur_sev = self._sev_filter.get()
+        self._combo_cat.config(values=[T("all")] + CATEGORIAS_ORDEN)
+        self._combo_sev.config(values=T("sev_values"))
+        self._cat_filter.set(T("all") if cur_cat in ("TODAS", "ALL") else cur_cat)
+        self._sev_filter.set(T("all") if cur_sev in ("TODAS", "ALL") else cur_sev)
+        # Labels IoC del panel derecho
+        for key, tkey, _ in self._ioc_field_keys:
+            if key in self._ioc_labels:
+                label_widget = self._ioc_labels[key]
+                # Actualizar el label de la etiqueta (el tk.Label hermano izquierdo)
+                parent_row = label_widget.master
+                children = parent_row.winfo_children()
+                if children:
+                    lbl_text = T(tkey) if tkey.startswith("ioc_") else tkey
+                    children[0].config(text=f"{lbl_text}:")
 
     def _estilo_dark(self):
         style = ttk.Style(self)
