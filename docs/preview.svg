@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#03050D" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#03050D"/>
+
+  <!-- Subtle glow center -->
+  <ellipse cx="600" cy="315" rx="380" ry="280" fill="url(#glow)"/>
+
+  <!-- Top border -->
+  <rect width="1200" height="3" fill="#00E5FF"/>
+  <!-- Bottom border -->
+  <rect y="627" width="1200" height="3" fill="#00E5FF"/>
+
+  <!-- Shield body — centered at 600,315 -->
+  <path d="M600 100 L780 160 L780 340 Q780 460 600 530 Q420 460 420 340 L420 160 Z"
+        fill="#070C18" stroke="#00E5FF" stroke-width="3"/>
+
+  <!-- Inner shield outline -->
+  <path d="M600 138 L748 188 L748 338 Q748 438 600 498 Q452 438 452 338 L452 188 Z"
+        fill="none" stroke="#1A2A45" stroke-width="1"/>
+
+
+</svg>

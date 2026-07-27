@@ -1469,9 +1469,9 @@ class CyberIntelApp(tk.Tk):
         acc.pack(fill="x", padx=6)
 
         self._btn_buscar  = self._btn(acc, T("btn_search"),   C["cyan"],   self._iniciar_busqueda, bold=True, fg=C["bg0"])
-        self._btn_marcar  = self._btn(acc, T("btn_mark"),     "#003820",   self._marcar_seleccion, fg=C["green"])
         self._btn_guardar = self._btn(acc, T("btn_save_ioc"), "#1A003A",   self._guardar_ioc,      fg=C["violet"], bold=True)
         self._btn_limpiar = self._btn(acc, T("btn_clear"),    C["bg1"],    self._limpiar,          fg=C["txt"])
+        self._btn_info    = self._btn(acc, "ℹ Info",          C["bg2"],    self._mostrar_info,     fg=C["cyan"], lado="right")
 
         # PANEL PRINCIPAL
         main = tk.PanedWindow(self, orient="horizontal", bg=C["bg0"],
@@ -1491,7 +1491,6 @@ class CyberIntelApp(tk.Tk):
 
         hdrs = {
             "fecha":  (T("col_date"),   95,  False),
-            "sel":    (T("col_check"),  28,  False),
             "sev":    (T("col_sev"),    78,  False),
             "cat":    (T("col_cat"),    155, False),
             "mitre":  (T("col_mitre"), 165, False),
@@ -1504,7 +1503,7 @@ class CyberIntelApp(tk.Tk):
             self.tree.heading(col, text=txt,
                               command=lambda c=col: self._ordenar(c))
             self.tree.column(col, width=w, stretch=stretch,
-                             anchor="center" if col in ("sel","sev","fecha") else "w")
+                             anchor="center" if col in ("sev","fecha") else "w")
 
         # Tags neon por categoría (fondo oscuro, texto neon)
         for cat, (bg, fg) in CAT_COLORS.items():
@@ -1516,7 +1515,7 @@ class CyberIntelApp(tk.Tk):
         self.tree.tag_configure("SEV_ALTO",    foreground=C["orange"], background="#100800")
         self.tree.tag_configure("SEV_MEDIO",   foreground=C["yellow"], background="#0E0C00")
         self.tree.tag_configure("SEV_BAJO",    foreground=C["green"],  background="#050F05")
-        self.tree.tag_configure("marcada",     background="#0A2A10",   foreground=C["green"])
+        self.tree.tag_configure("seleccionada", background="#0A2A10",   foreground=C["green"])
 
         sb_y = ttk.Scrollbar(izq, orient="vertical",   command=self.tree.yview)
         sb_x = ttk.Scrollbar(izq, orient="horizontal", command=self.tree.xview)
@@ -1528,7 +1527,7 @@ class CyberIntelApp(tk.Tk):
         izq.grid_columnconfigure(0, weight=1)
 
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
-        self.tree.bind("<Double-Button-1>",  self._toggle_marca)
+        self.tree.bind("<Double-Button-1>",  self._abrir_link_double)
 
         # ── PANEL DERECHO - DETALLE ──
         der = tk.Frame(main, bg=C["bg1"])
@@ -1711,7 +1710,6 @@ class CyberIntelApp(tk.Tk):
         self.title(T("title_top").replace("◈ ", "RMSecurity · "))
         self._btn_lang.config(text=T("lang_btn"))
         self._btn_buscar.config(text=T("btn_search"))
-        self._btn_marcar.config(text=T("btn_mark"))
         self._btn_guardar.config(text=T("btn_save_ioc"))
         self._btn_limpiar.config(text=T("btn_clear"))
         self._btn_excel_top.config(text=T("btn_excel"))
@@ -1728,7 +1726,7 @@ class CyberIntelApp(tk.Tk):
         self.lbl_status.config(text=T("loading_feeds"))
         # Columnas del treeview
         col_map = {
-            "fecha": "col_date", "sel": "col_check", "sev": "col_sev",
+            "fecha": "col_date", "sev": "col_sev",
             "cat": "col_cat", "mitre": "col_mitre", "titulo": "col_title",
             "actor": "col_actor", "fuente": "col_source",
         }
@@ -2048,7 +2046,7 @@ class CyberIntelApp(tk.Tk):
             cat_safe = cat.replace(" ", "_").replace("/", "_")
             fecha   = n.get("fecha_pub", "")[:10]
             iid = self.tree.insert("", "end",
-                values=(fecha, "", sev, cat, mitre_txt,
+                values=(fecha, sev, cat, mitre_txt,
                         n["title"][:85],
                         (n.get("actor") or "—")[:30],
                         n["region"][:22]),
@@ -2132,31 +2130,35 @@ class CyberIntelApp(tk.Tk):
 
         self._link_actual = n.get("link", "")
 
-    def _toggle_marca(self, event):
-        sel = self.tree.selection()
-        for iid in sel:
-            idx = self.noticias_vars.get(iid)
-            if idx is None:
-                continue
-            n = self.noticias_data[idx]
-            n["incluir"] = not n.get("incluir", False)
-            vals = list(self.tree.item(iid, "values"))
-            vals[1] = "✔" if n["incluir"] else ""
-            cat_safe = n["cat"].replace(" ", "_").replace("/", "_")
-            sev = n.get("severidad", "BAJO")
-            tags = ("marcada",) if n["incluir"] else (cat_safe, f"SEV_{sev}")
-            self.tree.item(iid, values=vals, tags=tags)
+    def _abrir_link_double(self, event):
+        link = getattr(self, "_link_actual", "")
+        if link:
+            import webbrowser
+            webbrowser.open(link)
 
-    def _marcar_seleccion(self):
-        for iid in self.tree.selection():
-            idx = self.noticias_vars.get(iid)
-            if idx is None:
-                continue
-            n = self.noticias_data[idx]
-            n["incluir"] = True
-            vals = list(self.tree.item(iid, "values"))
-            vals[1] = "✔"
-            self.tree.item(iid, values=vals, tags=("marcada",))
+    def _mostrar_info(self):
+        import tkinter.messagebox as mb
+        msg = (
+            "RMSecurity · Threat Intelligence Tool\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "¿Cómo usar el programa?\n\n"
+            "1. BUSCAR  →  Ingresá palabras clave (ej: ransomware, APT,\n"
+            "   CVE-2024) y presioná ◉ BUSCAR NOTICIAS.\n\n"
+            "2. EXPLORAR  →  Hacé clic en cualquier noticia para ver\n"
+            "   el análisis completo en el panel derecho.\n"
+            "   Doble-click abre el artículo en el navegador.\n\n"
+            "3. SELECCIONAR  →  Usá clic + Ctrl o Shift para\n"
+            "   seleccionar múltiples noticias.\n\n"
+            "4. EXPORTAR  →  Con las noticias seleccionadas,\n"
+            "   presioná ⬡ Guardar IoC para generar el Excel.\n\n"
+            "5. EXCEL  →  Abre el reporte THREAT_INTEL_IOC.xlsx\n"
+            "   con hoja de Resumen y datos por severidad/categoría.\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "Fuentes: 47 feeds RSS · MITRE ATT&CK\n"
+            "Extracción: CVEs · IPs · Hashes · APT · CVSS\n"
+            "Opcional: Ollama LLM para enriquecimiento semántico"
+        )
+        mb.showinfo("ℹ  Cómo usar RMSecurity", msg)
 
     def _aplicar_filtro(self):
         cat_f = self._cat_filter.get()
@@ -2199,10 +2201,15 @@ class CyberIntelApp(tk.Tk):
             self._ordenar("fecha")
 
     def _guardar_ioc(self):
-        marcadas = [n for n in self.noticias_data.values() if n.get("incluir")]
-        if not marcadas:
+        sel_iids = self.tree.selection()
+        if not sel_iids:
             messagebox.showinfo("Sin selección",
-                                "Doble-click en noticias para marcarlas (✔) primero.")
+                                "Seleccioná una o más noticias antes de exportar.\n"
+                                "(Clic para seleccionar · Ctrl+clic para múltiples)")
+            return
+        marcadas = [self.noticias_data[self.noticias_vars[iid]]
+                    for iid in sel_iids if iid in self.noticias_vars]
+        if not marcadas:
             return
         self.lbl_status.config(text=f"⟳ Guardando IoC de {len(marcadas)} noticias...")
         def _run():
@@ -2222,8 +2229,8 @@ class CyberIntelApp(tk.Tk):
             os.startfile(_ioc_path)
         else:
             messagebox.showinfo("Sin datos",
-                                "Todavía no hay datos guardados.\n"
-                                "Marca noticias y presiona ⬡ Guardar IoC.")
+                                "Todavía no hay datos exportados.\n"
+                                "Seleccioná noticias y presioná ⬡ Guardar IoC.")
 
     def _abrir_link(self):
         link = getattr(self, "_link_actual", "")
