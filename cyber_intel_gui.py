@@ -1376,13 +1376,34 @@ def _escribir_resumen(wb, ws_data):
 # ─────────────────────────────────────────────────────────────
 def parsear_fecha(pub_str):
     if not pub_str:
-        return date.today()
-    for fmt in ("%Y-%m-%d", "%a, %d %b %Y", "%d %b %Y"):
+        return None
+    s = pub_str.strip()
+    fmts = [
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%SZ",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%a, %d %b %Y %H:%M:%S %z",
+        "%a, %d %b %Y %H:%M:%S %Z",
+        "%a, %d %b %Y %H:%M:%S",
+        "%d %b %Y %H:%M:%S %z",
+        "%d %b %Y",
+        "%B %d, %Y",
+    ]
+    for fmt in fmts:
         try:
-            return datetime.strptime(pub_str[:20].strip(), fmt).date()
+            return datetime.strptime(s[:len(fmt)+4].strip(), fmt).date()
         except Exception:
             pass
-    return date.today()
+    # Último recurso: extraer YYYY-MM-DD con regex
+    m = re.search(r'(\d{4})-(\d{2})-(\d{2})', s)
+    if m:
+        try:
+            return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except Exception:
+            pass
+    return None
 
 # ─────────────────────────────────────────────────────────────
 # APP PRINCIPAL
@@ -1573,6 +1594,7 @@ class CyberIntelApp(tk.Tk):
 
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Double-Button-1>",  self._abrir_link_double)
+        self._tooltip(self.tree, "Clic → ver detalle   ·   Doble-click → abrir artículo en navegador   ·   Ctrl+clic → selección múltiple")
 
         # ── PANEL DERECHO - DETALLE ──
         der = tk.Frame(main, bg=C["bg1"])
@@ -1946,15 +1968,28 @@ class CyberIntelApp(tk.Tk):
                     title = limpiar_texto(getattr(e, "title", ""))
                     summ  = getattr(e, "summary", "") or getattr(e, "description", "")
                     link  = getattr(e, "link", "")
-                    pub   = getattr(e, "published", "") or getattr(e, "updated", "")
-                    if title:
+                    if not title:
+                        continue
+                    # feedparser ya parsea published_parsed/updated_parsed como struct_time
+                    fecha_obj = None
+                    for attr in ("published_parsed", "updated_parsed"):
+                        t = getattr(e, attr, None)
+                        if t:
+                            try:
+                                fecha_obj = date(t.tm_year, t.tm_mon, t.tm_mday)
+                                break
+                            except Exception:
+                                pass
+                    if fecha_obj is None:
+                        pub = getattr(e, "published", "") or getattr(e, "updated", "")
                         fecha_obj = parsear_fecha(pub)
-                        items.append({
-                            "title": title, "summary": summ,
-                            "link": link, "region": nombre,
-                            "fecha_pub": str(fecha_obj),
-                            "fecha_obj": fecha_obj,
-                        })
+                    fecha_str = fecha_obj.strftime("%Y-%m-%d") if fecha_obj else "—"
+                    items.append({
+                        "title": title, "summary": summ,
+                        "link": link, "region": nombre,
+                        "fecha_pub": fecha_str,
+                        "fecha_obj": fecha_obj or date.min,
+                    })
                 s = stats.get(nombre, {"total": 0, "util": 0})
                 s["total"] = s.get("total", 0) + len(items)
                 stats[nombre] = s
@@ -2233,7 +2268,7 @@ class CyberIntelApp(tk.Tk):
             "   CVE-2024) y presioná ◉ BUSCAR NOTICIAS.\n\n"
             "2. EXPLORAR  →  Hacé clic en cualquier noticia para ver\n"
             "   el análisis completo en el panel derecho.\n"
-            "   Doble-click abre el artículo en el navegador.\n\n"
+            "   Doble-click abre el artículo original en el navegador.\n\n"
             "3. SELECCIONAR  →  Usá clic + Ctrl o Shift para\n"
             "   seleccionar múltiples noticias.\n\n"
             "4. EXPORTAR  →  Con las noticias seleccionadas,\n"
