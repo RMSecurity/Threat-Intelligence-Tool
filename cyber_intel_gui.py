@@ -1473,6 +1473,14 @@ class CyberIntelApp(tk.Tk):
         self._btn_limpiar = self._btn(acc, T("btn_clear"),    C["bg1"],    self._limpiar,          fg=C["txt"])
         self._btn_info    = self._btn(acc, "ℹ Info",          C["bg2"],    self._mostrar_info,     fg=C["cyan"], lado="right")
 
+        self._tooltip(self._btn_buscar,  "Buscar noticias en los 47 feeds RSS")
+        self._tooltip(self._btn_guardar, "Exportar noticias seleccionadas a Excel (IoC)")
+        self._tooltip(self._btn_limpiar, "Limpiar resultados de la lista")
+        self._tooltip(self._btn_info,    "Cómo usar el programa")
+        self._tooltip(self._btn_excel_top, "Abrir reporte Excel existente")
+        self._tooltip(self._btn_feeds_top, "Ver lista de feeds RSS monitoreados")
+        self._tooltip(self._btn_lang,      "Cambiar idioma / Switch language")
+
         # PANEL PRINCIPAL
         main = tk.PanedWindow(self, orient="horizontal", bg=C["bg0"],
                                sashwidth=3, sashrelief="flat",
@@ -1516,6 +1524,7 @@ class CyberIntelApp(tk.Tk):
         self.tree.tag_configure("SEV_MEDIO",   foreground=C["yellow"], background="#0E0C00")
         self.tree.tag_configure("SEV_BAJO",    foreground=C["green"],  background="#050F05")
         self.tree.tag_configure("seleccionada", background="#0A2A10",   foreground=C["green"])
+        self.tree.tag_configure("match_pais",   background="#1A1500",   foreground=C["yellow"])
 
         sb_y = ttk.Scrollbar(izq, orient="vertical",   command=self.tree.yview)
         sb_x = ttk.Scrollbar(izq, orient="horizontal", command=self.tree.xview)
@@ -1671,6 +1680,13 @@ class CyberIntelApp(tk.Tk):
             font=("Consolas", 9), anchor="w")
         self._lbl_status_footer.pack(side="left", padx=10)
 
+        # Contador derecha de la status bar
+        self._lbl_status_right = tk.Label(
+            status_bar, text="",
+            bg="#010408", fg=C["txt"],
+            font=("Consolas", 9), anchor="e")
+        self._lbl_status_right.pack(side="right", padx=16)
+
         # Crédito discreto
         lbl_cred = tk.Label(status_bar,
                              text="by Rodrigo Moses · linkedin.com/in/rodrigo-m-793b36152",
@@ -1689,6 +1705,26 @@ class CyberIntelApp(tk.Tk):
                       command=cmd)
         b.pack(side=lado, padx=4)
         return b
+
+    def _tooltip(self, widget, text):
+        tip = None
+        def show(e):
+            nonlocal tip
+            tip = tk.Toplevel(widget)
+            tip.wm_overrideredirect(True)
+            tip.wm_geometry(f"+{e.x_root+12}+{e.y_root+18}")
+            tk.Label(tip, text=text, bg="#0F1830", fg=C["cyan"],
+                     font=("Consolas", 8), padx=6, pady=3,
+                     relief="flat", bd=1,
+                     highlightbackground=C["border"],
+                     highlightthickness=1).pack()
+        def hide(e):
+            nonlocal tip
+            if tip:
+                tip.destroy()
+                tip = None
+        widget.bind("<Enter>", show)
+        widget.bind("<Leave>", hide)
 
     def _lbl(self, text, parent, lado="left", pad=(6, 4)):
         tk.Label(parent, text=text, bg=C["bg1"], fg=C["txt"],
@@ -1794,9 +1830,9 @@ class CyberIntelApp(tk.Tk):
             self.tree.move(iid, "", idx)
 
         arrow = " ↓" if self._sort_desc else " ↑"
-        for c in ("fecha", "sel", "sev", "cat", "mitre", "titulo", "actor", "fuente"):
+        for c in ("fecha", "sev", "cat", "mitre", "titulo", "actor", "fuente"):
             lbl = {
-                "fecha": "Fecha", "sel": "✔", "sev": "Severidad",
+                "fecha": "Fecha", "sev": "Severidad",
                 "cat": "Categoría", "mitre": "MITRE ATT&CK",
                 "titulo": "Título", "actor": "Actor / Grupo", "fuente": "Fuente",
             }[c]
@@ -2054,9 +2090,13 @@ class CyberIntelApp(tk.Tk):
             self.noticias_vars[iid] = idx
 
         total = len(resultados)
+        criticos = sum(1 for n in resultados if n.get("severidad") == "CRÍTICO")
+        altos    = sum(1 for n in resultados if n.get("severidad") == "ALTO")
         self._lbl_count.config(text=f"  {total} amenazas detectadas")
-        msg = f"✅  {total} amenazas detectadas  ·  keywords: {kw_count}  ·  Ollama: {ollama_count}"
+        msg = f"✅  {total} amenazas  ·  kw: {kw_count}  ·  Ollama: {ollama_count}"
         self._lbl_status_footer.config(text=msg, fg=C["green"])
+        right_msg = f"🔴 CRÍTICO: {criticos}  ·  🟠 ALTO: {altos}  ·  Total: {total}"
+        self._lbl_status_right.config(text=right_msg, fg=C["txt"])
 
     # ─── DETALLE ───
     def _on_select(self, event):
@@ -2165,24 +2205,40 @@ class CyberIntelApp(tk.Tk):
         sev_f = self._sev_filter.get()
         txt_f = self._txt_search.get().lower().strip()
         todos = list(self.noticias_vars.keys())
-        detachados = set()
 
+        # Detectar si el texto es un nombre de país para resaltado
+        paises_match = set()
+        if txt_f:
+            for iid in todos:
+                n = self.noticias_data.get(self.noticias_vars.get(iid, -1), {})
+                pv = (n.get("pais_victima") or "").lower()
+                po = (n.get("pais_origen")  or "").lower()
+                if txt_f in pv or txt_f in po:
+                    paises_match.add(iid)
+
+        visibles = 0
         for iid in todos:
             idx = self.noticias_vars.get(iid)
             if idx is None:
                 continue
-            n   = self.noticias_data[idx]
-            ok  = True
-            if cat_f != "TODAS" and n.get("cat") != cat_f:
+            n  = self.noticias_data[idx]
+            ok = True
+            if cat_f not in ("TODAS", "ALL") and n.get("cat") != cat_f:
                 ok = False
-            if sev_f != "TODAS" and n.get("severidad") != sev_f:
+            if sev_f not in ("TODAS", "ALL") and n.get("severidad") != sev_f:
                 ok = False
             if txt_f:
-                haystack = " ".join([
-                    n.get("title",""), n.get("resumen",""),
-                    n.get("actor",""), n.get("victima",""),
-                    n.get("cve",""), n.get("region",""),
-                ]).lower()
+                haystack = " ".join(filter(None, [
+                    n.get("title"),    n.get("resumen"),
+                    n.get("actor"),    n.get("victima"),
+                    n.get("cve"),      n.get("region"),
+                    n.get("ips"),      n.get("hashes"),
+                    n.get("dominios"), n.get("wallets"),
+                    n.get("tecnicas"), n.get("software"),
+                    n.get("pais_victima"), n.get("pais_origen"),
+                    n.get("sector"),   n.get("impacto"),
+                    n.get("datos_robados"),
+                ])).lower()
                 if txt_f not in haystack:
                     ok = False
             try:
@@ -2190,12 +2246,24 @@ class CyberIntelApp(tk.Tk):
                     self.tree.reattach(iid, "", "end")
                     cat_safe = n["cat"].replace(" ","_").replace("/","_")
                     sev = n.get("severidad","BAJO")
-                    if not n.get("incluir"):
+                    # Resaltar en amarillo si el término coincide con un país
+                    if iid in paises_match:
+                        self.tree.item(iid, tags=("match_pais",))
+                    else:
                         self.tree.item(iid, tags=(cat_safe, f"SEV_{sev}"))
+                    visibles += 1
                 else:
                     self.tree.detach(iid)
             except Exception:
                 pass
+
+        total = len(self.noticias_data)
+        if txt_f or cat_f not in ("TODAS","ALL") or sev_f not in ("TODAS","ALL"):
+            self._lbl_count.config(
+                text=f"  {visibles} de {total} amenazas",
+                fg=C["cyan"] if visibles < total else C["txt"])
+        else:
+            self._lbl_count.config(text=f"  {total} amenazas detectadas", fg=C["txt"])
 
         if self._sort_col == "fecha":
             self._ordenar("fecha")
@@ -2244,6 +2312,7 @@ class CyberIntelApp(tk.Tk):
         self.noticias_data.clear()
         self.noticias_vars.clear()
         self._lbl_count.config(text="")
+        self._lbl_status_right.config(text="")
         self.lbl_status.config(text="Limpiado.")
         self._txt_detail.config(state="normal")
         self._txt_detail.delete("1.0", "end")
