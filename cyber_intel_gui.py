@@ -491,7 +491,7 @@ _HEADERS_FETCH = {
 _NO_FETCH = {"google.com", "news.google.com", "t.co", "twitter.com",
              "facebook.com", "linkedin.com", "paywall.com"}
 
-def _fetch_articulo(url, timeout=6):
+def _fetch_articulo(url, timeout=4):
     """Descarga el texto plano del artículo completo. Devuelve str o ''."""
     if not url:
         return ""
@@ -500,22 +500,33 @@ def _fetch_articulo(url, timeout=6):
         if any(nd in dom for nd in _NO_FETCH):
             return ""
         r = requests.get(url, headers=_HEADERS_FETCH, timeout=timeout,
-                         allow_redirects=True)
+                         allow_redirects=True, stream=False)
         if r.status_code != 200:
             return ""
-        # Extraer texto plano del HTML con regex ligero (sin BeautifulSoup opcional)
         try:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(r.text, "html.parser")
             for tag in soup(["script","style","nav","footer","header","aside"]):
                 tag.decompose()
-            # Preferir artículo principal
             art = soup.find("article") or soup.find("main") or soup.body
             return limpiar_texto(art.get_text(" ", strip=True)) if art else ""
         except ImportError:
             return limpiar_texto(_RE_HTML.sub(" ", r.text))
     except Exception:
         return ""
+
+
+def _fetch_feed(url, timeout=5):
+    """Descarga un feed RSS con timeout explícito y lo parsea."""
+    try:
+        r = requests.get(url, headers=_HEADERS_FETCH, timeout=timeout,
+                         allow_redirects=True)
+        return feedparser.parse(r.content)
+    except Exception:
+        try:
+            return feedparser.parse(url)
+        except Exception:
+            return feedparser.FeedParserDict(entries=[])
 
 # ─────────────────────────────────────────────────────────────
 # EXTRACCIÓN IoC COMPLETA
@@ -1893,9 +1904,9 @@ class CyberIntelApp(tk.Tk):
 
         def fetch(nombre, url):
             try:
-                feed  = feedparser.parse(url)
+                feed  = _fetch_feed(url)
                 items = []
-                for e in feed.entries[:35]:
+                for e in feed.entries[:20]:
                     title = limpiar_texto(getattr(e, "title", ""))
                     summ  = getattr(e, "summary", "") or getattr(e, "description", "")
                     link  = getattr(e, "link", "")
@@ -1918,7 +1929,7 @@ class CyberIntelApp(tk.Tk):
         # ── Fase 1: feeds RSS ──
         _upd("Fase 1 / 3 — Consultando feeds RSS...",
              f"0 / {total_feeds} feeds procesados")
-        with ThreadPoolExecutor(max_workers=20) as ex:
+        with ThreadPoolExecutor(max_workers=len(FEEDS)) as ex:
             futures = {ex.submit(fetch, n, u): (n, u) for n, u in FEEDS}
             for fut in as_completed(futures):
                 items, nombre = fut.result()
@@ -1974,7 +1985,7 @@ class CyberIntelApp(tk.Tk):
             return None
 
         # Procesar en paralelo
-        with ThreadPoolExecutor(max_workers=8) as ex:
+        with ThreadPoolExecutor(max_workers=24) as ex:
             futs_kw = [ex.submit(procesar_kw, a) for a in kw_arts]
             futs_ol = [ex.submit(procesar_ollama, a) for a in ollama_arts]
             for f in as_completed(futs_kw):
@@ -2030,32 +2041,29 @@ class CyberIntelApp(tk.Tk):
         }
 
     def _construir(self, art, cat):
-        texto_full = _fetch_articulo(art.get("link", ""))
-        ioc    = extraer_ioc(art["title"], art["summary"],
-                             art.get("link", ""), texto_full)
-        mitre  = detectar_mitre(art["title"],
-                                art["summary"] + " " + texto_full[:1000])
+        summ = art["summary"]
+        texto_full = "" if len(summ) > 600 else _fetch_articulo(art.get("link", ""))
+        texto_base = texto_full or summ
+        ioc    = extraer_ioc(art["title"], summ, art.get("link", ""), texto_full)
+        mitre  = detectar_mitre(art["title"], summ + " " + texto_base[:1000])
         mi_id, mi_name, mi_all = mitre if mitre else (None, None, [])
         sev    = nivel_severidad(cat, mi_all, ioc)
-        # Resumen: si descargamos artículo, usar primeras oraciones relevantes
-        resumen = condensar_resumen(art["title"],
-                                    texto_full[:800] if texto_full
-                                    else art["summary"])
+        resumen = condensar_resumen(art["title"], texto_base[:800])
         return self._empaquetar(art, cat, ioc, mi_id, mi_name, mi_all, sev, resumen)
 
     def _construir_ollama(self, art, res):
         cat = res.get("categoria", "CIBERCRIMEN / DARKWEB")
         if cat not in CATEGORIAS:
             cat = "CIBERCRIMEN / DARKWEB"
-        texto_full = _fetch_articulo(art.get("link", ""))
-        ioc     = extraer_ioc(art["title"], art["summary"],
-                              art.get("link", ""), texto_full)
+        summ = art["summary"]
+        texto_full = "" if len(summ) > 600 else _fetch_articulo(art.get("link", ""))
+        texto_base = texto_full or summ
+        ioc     = extraer_ioc(art["title"], summ, art.get("link", ""), texto_full)
         mi_id   = res.get("mitre_tactica")
         mi_name = MITRE_TACTICS.get(mi_id, "") if mi_id else ""
         mi_all  = [mi_id] if mi_id else []
         sev     = nivel_severidad(cat, mi_all, ioc)
-        resumen = res.get("resumen_es") or condensar_resumen(
-            art["title"], texto_full[:800] if texto_full else art["summary"])
+        resumen = res.get("resumen_es") or condensar_resumen(art["title"], texto_base[:800])
         return self._empaquetar(
             art, cat, ioc, mi_id, mi_name, mi_all, sev, resumen,
             actor_extra=res.get("actor"),
