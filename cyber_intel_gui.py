@@ -896,23 +896,46 @@ def _similitud(t1, t2):
                 if x not in stop and len(x) > 3}
     p1, p2 = w(t1), w(t2)
     if not p1 or not p2: return 0.0
-    return len(p1 & p2) / max(len(p1), len(p2))
+    inter = len(p1 & p2)
+    # Jaccard + bonus si comparten palabras clave largas (CVE, nombres propios)
+    jaccard = inter / len(p1 | p2)
+    overlap = inter / min(len(p1), len(p2))
+    return max(jaccard, overlap * 0.85)
 
 def deduplicar(arts):
+    # Índice rápido por primeras 3 palabras significativas para evitar O(n²) completo
+    _stop = {"de","la","el","los","las","en","a","y","por","con","del",
+             "the","of","and","in","to","for","by","on","at","an","is","was"}
+    def _key(t):
+        words = [x for x in re.findall(r'[a-z0-9]+', t.lower())
+                 if x not in _stop and len(x) > 3]
+        return tuple(sorted(words[:4]))
+
+    buckets: dict = {}
     unicos = []
     for art in arts:
+        k = _key(art["title"])
+        candidatos = set()
+        for w in k:
+            candidatos.update(buckets.get(w, []))
         dup = False
-        for u in unicos:
-            if _similitud(art["title"], u["title"]) >= _UMBRAL_DUP:
-                fuentes = u.get("_fuentes", [u.get("region", "")])
-                if art.get("region", "") not in fuentes:
-                    fuentes.append(art.get("region", ""))
-                u["_fuentes"] = fuentes
+        for idx in candidatos:
+            if _similitud(art["title"], unicos[idx]["title"]) >= _UMBRAL_DUP:
+                fuentes = unicos[idx].get("_fuentes", [unicos[idx].get("region","")])
+                if art.get("region","") not in fuentes:
+                    fuentes.append(art.get("region",""))
+                unicos[idx]["_fuentes"] = fuentes
+                # Preferir el summary más largo
+                if len(art.get("summary","")) > len(unicos[idx].get("summary","")):
+                    unicos[idx]["summary"] = art["summary"]
                 dup = True
                 break
         if not dup:
-            art["_fuentes"] = [art.get("region", "")]
+            i = len(unicos)
+            art["_fuentes"] = [art.get("region","")]
             unicos.append(art)
+            for w in k:
+                buckets.setdefault(w, []).append(i)
     return unicos
 
 # ─────────────────────────────────────────────────────────────
@@ -1386,6 +1409,7 @@ class CyberIntelApp(tk.Tk):
         self._sort_desc    = True  # más nuevo primero por defecto
 
         self._build_ui()
+        self._bind_shortcuts()
         self.center()
         self.after(400, self._check_ollama_status)
 
@@ -1421,8 +1445,10 @@ class CyberIntelApp(tk.Tk):
                                    bg="#010408", fg=C["amber"],
                                    font=("Consolas", 9))
         self.lbl_ollama.pack(side="right", padx=10)
-        self._btn_excel_top = self._btn(right_top, T("btn_excel"), C["blue"],  self._abrir_ioc,  lado="right")
-        self._btn_feeds_top = self._btn(right_top, T("btn_feeds"), C["border"], self._ver_feeds, lado="right", fg=C["txt"])
+        self._btn_excel_top  = self._btn(right_top, T("btn_excel"),  C["blue"],    self._abrir_ioc,             lado="right")
+        self._btn_feeds_top  = self._btn(right_top, T("btn_feeds"),  C["border"],  self._ver_feeds,             lado="right", fg=C["txt"])
+        self._btn_feed_health= self._btn(right_top, "📡 Feeds",      "#0A1A00",    self._abrir_feed_health,     lado="right", fg=C["green"])
+        self._tooltip(self._btn_feed_health, "Ver estado de los feeds RSS (última búsqueda)")
         self._btn_lang = tk.Button(right_top, text=T("lang_btn"),
                                    bg=C["bg2"], fg=C["txt_hi"],
                                    font=("Consolas", 9, "bold"),
@@ -1456,15 +1482,14 @@ class CyberIntelApp(tk.Tk):
         self._combo_sev.bind("<<ComboboxSelected>>", lambda e: self._aplicar_filtro())
 
         self._lbl_buscar = self._lbl_ret("Buscar:", filtros, lado="left", pad=(10, 4))
-        self._txt_search = tk.Entry(filtros, bg=C["bg2"], fg=C["txt_hi"],
-                                    insertbackground=C["cyan"],
-                                    font=("Consolas", 10), width=24,
-                                    relief="flat", bd=0,
-                                    highlightthickness=1,
-                                    highlightcolor=C["cyan"],
-                                    highlightbackground=C["border"])
-        self._txt_search.pack(side="left", padx=4, ipady=3)
+        self._search_history = []
+        self._txt_search_var = tk.StringVar()
+        self._txt_search = ttk.Combobox(filtros, textvariable=self._txt_search_var,
+                                         values=self._search_history,
+                                         font=("Consolas", 10), width=22)
+        self._txt_search.pack(side="left", padx=4, ipady=2)
         self._txt_search.bind("<Return>", lambda e: self._aplicar_filtro())
+        self._txt_search.bind("<<ComboboxSelected>>", lambda e: self._aplicar_filtro())
 
         tk.Button(filtros, text="⌕", bg=C["bg2"], fg=C["cyan"],
                   font=("Consolas", 10, "bold"), relief="flat", padx=6,
@@ -1938,6 +1963,7 @@ class CyberIntelApp(tk.Tk):
                 return [], nombre
 
         # ── Fase 1: feeds RSS ──
+        feed_results = {}
         _upd("Fase 1 / 3 — Consultando feeds RSS...",
              f"0 / {total_feeds} feeds procesados")
         with ThreadPoolExecutor(max_workers=len(FEEDS)) as ex:
@@ -1945,9 +1971,11 @@ class CyberIntelApp(tk.Tk):
             for fut in as_completed(futures):
                 items, nombre = fut.result()
                 todos.extend(items)
+                feed_results[nombre] = len(items)
                 feeds_ok[0] += 1
                 _upd(f"Fase 1 / 3 — Consultando feeds RSS...",
                      f"{feeds_ok[0]} / {total_feeds} feeds  ·  {len(todos)} artículos")
+        self._last_feed_results = feed_results
 
         todos = deduplicar(todos)
         _upd(f"Fase 2 / 3 — Clasificando {len(todos)} artículos únicos...",
@@ -2219,6 +2247,65 @@ class CyberIntelApp(tk.Tk):
         )
         mb.showinfo("ℹ  Cómo usar RMSecurity", msg)
 
+    def _abrir_feed_health(self):
+        fd = getattr(self, "_last_feed_results", None)
+        if not fd:
+            messagebox.showinfo("Sin datos", "Realizá una búsqueda primero.")
+            return
+        self._mostrar_feed_health(fd)
+
+    def _bind_shortcuts(self):
+        self.bind("<Control-Return>", lambda e: self._iniciar_busqueda())
+        self.bind("<Control-r>",      lambda e: self._iniciar_busqueda())
+        self.bind("<Escape>",         lambda e: self._limpiar())
+        self.bind("<Control-i>",      lambda e: self._copiar_informe_rapido())
+        self.bind("<Control-f>",      lambda e: (self._txt_search.focus_set(),
+                                                 self._txt_search.select_range(0, "end")))
+
+    def _mostrar_feed_health(self, feed_results: dict):
+        """Ventana emergente con estado de cada feed."""
+        win = tk.Toplevel(self)
+        win.title("Estado de feeds RSS")
+        win.configure(bg=C["bg0"])
+        win.resizable(True, True)
+        win.geometry("540x420")
+
+        tk.Label(win, text="◈ FEED HEALTH", bg=C["bg0"], fg=C["cyan"],
+                 font=("Consolas", 11, "bold")).pack(pady=(10, 4))
+        tk.Frame(win, bg=C["cyan"], height=1).pack(fill="x", padx=10)
+
+        frame = tk.Frame(win, bg=C["bg0"])
+        frame.pack(fill="both", expand=True, padx=10, pady=6)
+
+        sb = ttk.Scrollbar(frame, orient="vertical")
+        sb.pack(side="right", fill="y")
+        canvas = tk.Canvas(frame, bg=C["bg0"], highlightthickness=0,
+                           yscrollcommand=sb.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        sb.config(command=canvas.yview)
+        inner = tk.Frame(canvas, bg=C["bg0"])
+        canvas.create_window((0, 0), window=inner, anchor="nw")
+        inner.bind("<Configure>", lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")))
+
+        ok_count = sum(1 for v in feed_results.values() if v > 0)
+        fail_count = len(feed_results) - ok_count
+        tk.Label(win,
+                 text=f"✅ {ok_count} OK   ❌ {fail_count} sin respuesta   📡 {len(feed_results)} total",
+                 bg=C["bg0"], fg=C["txt"], font=("Consolas", 9)).pack(pady=(0, 6))
+
+        for nombre, count in sorted(feed_results.items(), key=lambda x: -x[1]):
+            row = tk.Frame(inner, bg=C["bg0"])
+            row.pack(fill="x", pady=1)
+            color = C["green"] if count > 0 else C["red"]
+            icon  = "✔" if count > 0 else "✘"
+            tk.Label(row, text=icon, bg=C["bg0"], fg=color,
+                     font=("Consolas", 9), width=2).pack(side="left")
+            tk.Label(row, text=nombre[:35], bg=C["bg0"], fg=C["txt_hi"],
+                     font=("Consolas", 9), width=36, anchor="w").pack(side="left")
+            tk.Label(row, text=f"{count} art." if count > 0 else "—",
+                     bg=C["bg0"], fg=color, font=("Consolas", 9)).pack(side="left", padx=8)
+
     def _copiar_ioc_field(self, widget, key):
         val = widget.cget("text")
         if val and val != "—":
@@ -2229,84 +2316,95 @@ class CyberIntelApp(tk.Tk):
             widget.config(fg="#000000", bg=C["cyan"])
             self.after(350, lambda: widget.config(fg=orig_fg, bg=orig_bg))
 
-    def _copiar_informe_rapido(self):
-        sel = self.tree.selection()
-        iid = sel[-1] if sel else None
-        idx = self.noticias_vars.get(iid) if iid else None
-        n   = self.noticias_data.get(idx) if idx is not None else None
-        if not n:
-            messagebox.showinfo("Sin selección", "Seleccioná una noticia primero.")
-            return
-
+    def _bloque_noticia(self, n, num=None):
         lines = []
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        lines.append("  INFORME DE AMENAZA · THREAT INTELLIGENCE")
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        sep = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        lines.append(sep)
+        hdr = f"  AMENAZA #{num}" if num else "  INFORME DE AMENAZA"
+        lines.append(f"{hdr} · THREAT INTELLIGENCE")
+        lines.append(sep)
         lines.append(f"  {n.get('title','')}")
         lines.append("")
         lines.append(f"  Fecha:      {n.get('fecha_pub','')[:10]}")
         lines.append(f"  Severidad:  {n.get('severidad','—')}")
         lines.append(f"  Categoría:  {n.get('cat','—')}")
         mitre = n.get('mitre_id','')
-        mname = n.get('mitre_name','')
         if mitre:
-            lines.append(f"  MITRE:      {mitre} · {mname}")
+            lines.append(f"  MITRE:      {mitre} · {n.get('mitre_name','')}")
         lines.append("")
-        lines.append("  ── ACTORES ──────────────────────")
 
         def _f(label, key):
             v = n.get(key)
             if v:
-                lines.append(f"  {label:<14}{v}")
+                lines.append(f"  {label:<16}{v}")
 
-        _f("Actor/Grupo:",  "actor")
-        _f("País origen:",  "pais_origen")
-        _f("Víctima:",      "victima")
-        _f("Sector:",       "sector")
-        _f("País víctima:", "pais_victima")
+        lines.append("  ── ACTORES ──────────────────────")
+        _f("Actor/Grupo:",    "actor");     _f("País origen:",  "pais_origen")
+        _f("Víctima:",        "victima");   _f("Sector:",       "sector")
+        _f("País víctima:",   "pais_victima")
         lines.append("")
         lines.append("  ── IMPACTO ──────────────────────")
-        _f("Impacto:",      "impacto")
-        _f("Datos robados:","datos_robados")
-        _f("Sistemas:",     "sistemas_afect")
-        _f("Rescate:",      "rescate")
+        _f("Impacto:",        "impacto");   _f("Datos robados:","datos_robados")
+        _f("Sistemas:",       "sistemas_afect"); _f("Rescate:",  "rescate")
         lines.append("")
         lines.append("  ── TÉCNICOS ─────────────────────")
-        _f("CVE:",          "cve")
-        _f("CVSS:",         "cvss")
-        _f("Software:",     "software")
-        _f("Versiones:",    "versiones")
-        _f("Técnicas:",     "tecnicas")
-        _f("IPs (C2):",     "ips")
-        _f("Dominios:",     "dominios")
-        _f("Hashes:",       "hashes")
-        _f("Wallets:",      "wallets")
+        _f("CVE:",    "cve");   _f("CVSS:",     "cvss");   _f("Software:", "software")
+        _f("Técnicas:","tecnicas"); _f("IPs (C2):","ips"); _f("Dominios:", "dominios")
+        _f("Hashes:", "hashes");   _f("Wallets:", "wallets")
         lines.append("")
         lines.append("  ── RESUMEN ──────────────────────")
-        resumen = n.get("resumen", "")
+        resumen = n.get("resumen","")
         for chunk in [resumen[i:i+70] for i in range(0, min(len(resumen), 420), 70)]:
             lines.append(f"  {chunk}")
         if n.get("link"):
-            lines.append("")
-            lines.append(f"  Fuente: {n.get('link','')}")
-        lines.append("")
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        lines.append("  Generado por RMSecurity Threat Intelligence Tool")
-        lines.append("  Desarrollado por Rodrigo Moses")
-        lines.append("  linkedin.com/in/rodrigo-m-793b36152")
-        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"\n  Fuente: {n.get('link','')}")
+        return lines
 
-        texto = "\n".join(lines)
+    def _copiar_informe_rapido(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showinfo("Sin selección", "Seleccioná una o más noticias primero.")
+            return
+        noticias = [self.noticias_data[self.noticias_vars[iid]]
+                    for iid in sel if iid in self.noticias_vars]
+        if not noticias:
+            return
+
+        all_lines = []
+        if len(noticias) > 1:
+            all_lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            all_lines.append(f"  INFORME MÚLTIPLE · {len(noticias)} AMENAZAS")
+            all_lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            all_lines.append("")
+            for i, n in enumerate(noticias, 1):
+                all_lines.extend(self._bloque_noticia(n, num=i))
+                all_lines.append("")
+        else:
+            all_lines.extend(self._bloque_noticia(noticias[0]))
+            all_lines.append("")
+
+        all_lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        all_lines.append("  Generado por RMSecurity Threat Intelligence Tool")
+        all_lines.append("  Desarrollado por Rodrigo Moses")
+        all_lines.append("  linkedin.com/in/rodrigo-m-793b36152")
+        all_lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
         self.clipboard_clear()
-        self.clipboard_append(texto)
-
-        self._btn_informe.config(text="✔ Copiado!", fg=C["green"])
+        self.clipboard_append("\n".join(all_lines))
+        lbl = f"✔ {len(noticias)} copiado{'s' if len(noticias)>1 else ''}!"
+        self._btn_informe.config(text=lbl, fg=C["green"])
         self.after(1800, lambda: self._btn_informe.config(text="📋 Informe", fg=C["amber"]))
 
     def _aplicar_filtro(self):
         cat_f = self._cat_filter.get()
         sev_f = self._sev_filter.get()
-        txt_f = self._txt_search.get().lower().strip()
+        txt_f = self._txt_search_var.get().lower().strip()
+        # Guardar en historial si no está
+        raw = self._txt_search_var.get().strip()
+        if raw and raw not in self._search_history:
+            self._search_history.insert(0, raw)
+            self._search_history[:] = self._search_history[:15]
+            self._txt_search.config(values=self._search_history)
         todos = list(self.noticias_vars.keys())
 
         # Detectar si el texto es un nombre de país para resaltado
