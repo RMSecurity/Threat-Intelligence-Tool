@@ -1555,9 +1555,18 @@ class CyberIntelApp(tk.Tk):
 
         # Header detalle
         tk.Frame(der, bg=C["cyan"], height=1).pack(fill="x")
-        self._lbl_analysis_hdr = tk.Label(der, text=T("panel_analysis"), bg=C["bg1"], fg=C["cyan"],
+        hdr_row = tk.Frame(der, bg=C["bg1"])
+        hdr_row.pack(fill="x", padx=8, pady=(4, 2))
+        self._lbl_analysis_hdr = tk.Label(hdr_row, text=T("panel_analysis"), bg=C["bg1"], fg=C["cyan"],
                  font=("Consolas", 9, "bold"), anchor="w")
-        self._lbl_analysis_hdr.pack(fill="x", padx=8, pady=(6, 2))
+        self._lbl_analysis_hdr.pack(side="left")
+        self._btn_informe = tk.Button(hdr_row, text="📋 Informe",
+                  bg="#0A1020", fg=C["amber"],
+                  font=("Consolas", 8, "bold"), relief="flat", padx=6, pady=1,
+                  activebackground=C["bg3"], activeforeground=C["yellow"],
+                  command=self._copiar_informe_rapido)
+        self._btn_informe.pack(side="right")
+        self._tooltip(self._btn_informe, "Copiar informe completo al portapapeles")
 
         # Badges sev + cat
         self._lbl_sev = tk.Label(der, text="", bg=C["bg1"], fg="white",
@@ -1623,8 +1632,10 @@ class CyberIntelApp(tk.Tk):
                      font=("Consolas", 7), width=13, anchor="e").pack(side="left")
             lbl = tk.Label(row, text="—", bg="#001008", fg=color,
                            font=("Consolas", 8), anchor="w", wraplength=170,
-                           justify="left")
+                           justify="left", cursor="hand2")
             lbl.pack(side="left", padx=3)
+            lbl.bind("<Button-1>", lambda e, w=lbl, k=key: self._copiar_ioc_field(w, k))
+            self._tooltip(lbl, "Clic para copiar")
             self._ioc_labels[key] = lbl
 
         # Resumen
@@ -2207,6 +2218,90 @@ class CyberIntelApp(tk.Tk):
             "Opcional: Ollama LLM para enriquecimiento semántico"
         )
         mb.showinfo("ℹ  Cómo usar RMSecurity", msg)
+
+    def _copiar_ioc_field(self, widget, key):
+        val = widget.cget("text")
+        if val and val != "—":
+            self.clipboard_clear()
+            self.clipboard_append(val)
+            orig_fg = widget.cget("fg")
+            orig_bg = widget.cget("bg")
+            widget.config(fg="#000000", bg=C["cyan"])
+            self.after(350, lambda: widget.config(fg=orig_fg, bg=orig_bg))
+
+    def _copiar_informe_rapido(self):
+        sel = self.tree.selection()
+        iid = sel[-1] if sel else None
+        idx = self.noticias_vars.get(iid) if iid else None
+        n   = self.noticias_data.get(idx) if idx is not None else None
+        if not n:
+            messagebox.showinfo("Sin selección", "Seleccioná una noticia primero.")
+            return
+
+        lines = []
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append("  INFORME DE AMENAZA · THREAT INTELLIGENCE")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append(f"  {n.get('title','')}")
+        lines.append("")
+        lines.append(f"  Fecha:      {n.get('fecha_pub','')[:10]}")
+        lines.append(f"  Severidad:  {n.get('severidad','—')}")
+        lines.append(f"  Categoría:  {n.get('cat','—')}")
+        mitre = n.get('mitre_id','')
+        mname = n.get('mitre_name','')
+        if mitre:
+            lines.append(f"  MITRE:      {mitre} · {mname}")
+        lines.append("")
+        lines.append("  ── ACTORES ──────────────────────")
+
+        def _f(label, key):
+            v = n.get(key)
+            if v:
+                lines.append(f"  {label:<14}{v}")
+
+        _f("Actor/Grupo:",  "actor")
+        _f("País origen:",  "pais_origen")
+        _f("Víctima:",      "victima")
+        _f("Sector:",       "sector")
+        _f("País víctima:", "pais_victima")
+        lines.append("")
+        lines.append("  ── IMPACTO ──────────────────────")
+        _f("Impacto:",      "impacto")
+        _f("Datos robados:","datos_robados")
+        _f("Sistemas:",     "sistemas_afect")
+        _f("Rescate:",      "rescate")
+        lines.append("")
+        lines.append("  ── TÉCNICOS ─────────────────────")
+        _f("CVE:",          "cve")
+        _f("CVSS:",         "cvss")
+        _f("Software:",     "software")
+        _f("Versiones:",    "versiones")
+        _f("Técnicas:",     "tecnicas")
+        _f("IPs (C2):",     "ips")
+        _f("Dominios:",     "dominios")
+        _f("Hashes:",       "hashes")
+        _f("Wallets:",      "wallets")
+        lines.append("")
+        lines.append("  ── RESUMEN ──────────────────────")
+        resumen = n.get("resumen", "")
+        for chunk in [resumen[i:i+70] for i in range(0, min(len(resumen), 420), 70)]:
+            lines.append(f"  {chunk}")
+        if n.get("link"):
+            lines.append("")
+            lines.append(f"  Fuente: {n.get('link','')}")
+        lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append("  Generado por RMSecurity Threat Intelligence Tool")
+        lines.append("  Desarrollado por Rodrigo Moses")
+        lines.append("  linkedin.com/in/rodrigo-m-793b36152")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        texto = "\n".join(lines)
+        self.clipboard_clear()
+        self.clipboard_append(texto)
+
+        self._btn_informe.config(text="✔ Copiado!", fg=C["green"])
+        self.after(1800, lambda: self._btn_informe.config(text="📋 Informe", fg=C["amber"]))
 
     def _aplicar_filtro(self):
         cat_f = self._cat_filter.get()
